@@ -35,4 +35,4 @@ Requirements
 
 Cleanup Mode (Remove All Configured Groups and Users)
 
-cleanup_mode	Boolean	Remove all configured groups and users. Default="false".
+cleanup_mode=Boolean - Remove all configured groups and users. Default="false".
