@@ -7,12 +7,12 @@
     - name: Ensure groups variable is defined
       ansible.builtin.fail:
         msg: "The variable 'groups' is not defined or is empty."
-      when: groups is not defined or groups | length == 0
+      when: values.groups is not defined or values.groups | length == 0
 
     # Determine if cleanup mode is enabled
     - name: Check if cleanup is enabled
       ansible.builtin.set_fact:
-        cleanup_mode: "{{ cleanup_mode | default(false) }}"
+        cleanup_mode: "{{ values.cleanup_mode | default(false) }}"
 
     # Get existing users and groups
     - name: Gather existing users and groups
@@ -33,7 +33,7 @@
         name: "{{ item }}"
         state: absent
         remove: yes  # Remove home directories as well
-      loop: "{{ groups | map(attribute='users') | flatten | list }}"
+      loop: "{{ values.groups | map(attribute='users') | flatten | list }}"
       when: cleanup_mode
       register: user_removal
 
@@ -42,7 +42,7 @@
       ansible.builtin.group:
         name: "{{ item.name }}"
         state: absent
-      loop: "{{ groups }}"
+      loop: "{{ values.groups }}"
       when: cleanup_mode
       register: group_removal
 
@@ -51,7 +51,7 @@
       ansible.builtin.file:
         path: "/etc/sudoers.d/{{ item.name }}"
         state: absent
-      loop: "{{ groups }}"
+      loop: "{{ values.groups }}"
       when: cleanup_mode
 
     # Ensure groups exist when cleanup is not enabled
@@ -59,7 +59,7 @@
       ansible.builtin.group:
         name: "{{ item.name }}"
         state: present
-      loop: "{{ groups }}"
+      loop: "{{ values.groups }}"
       when: not cleanup_mode
 
     # Ensure users exist in their respective groups when cleanup is not enabled
@@ -72,7 +72,7 @@
         state: present
         create_home: true
         home: "/home/{{ item.1 }}"
-      loop: "{{ groups | subelements('users') }}"
+      loop: "{{ values.groups | subelements('users') }}"
       when: not cleanup_mode
 
     # Ensure home directory permissions are set when cleanup is not enabled
@@ -83,7 +83,7 @@
         mode: '0750'
         owner: "{{ item.1 }}"
         group: "{{ item.0.name }}"
-      loop: "{{ groups | subelements('users') }}"
+      loop: "{{ values.groups | subelements('users') }}"
       when: not cleanup_mode
 
     # Set sudo privileges for groups only when cleanup is not enabled
@@ -93,5 +93,5 @@
         content: |
           %{{ item.name }} {{ item.privileges }}
         mode: '0440'
-      loop: "{{ groups }}"
+      loop: "{{ values.groups }}"
       when: not cleanup_mode and item.privileges is defined
